@@ -208,4 +208,4 @@ async function extractContent(mainWindow) {
 }
 
 // Export for use in server
-module.exports = { queryTSE };
+module.exports = { queryTSE, CaptchaError };

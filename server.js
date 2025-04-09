@@ -4,7 +4,7 @@ const swaggerUi = require('swagger-ui-express');
 const fs = require('fs');
 const yaml = require('yaml');
 
-const { queryTSE } = require('./main');
+const { queryTSE, CaptchaError } = require('./main');
 
 // Common user agents for rotation
 const userAgents = [
@@ -39,6 +39,27 @@ app.use(cors());
 app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
+// Retry wrapper for queryTSE
+async function queryTSEWithRetry(options, maxRetries = 5) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Attempt ${attempt} of ${maxRetries}`);
+      return await queryTSE(options);
+    } catch (error) {
+      lastError = error;
+      if (!(error instanceof CaptchaError)) {
+        throw error; // If it's not a CaptchaError, throw immediately
+      }
+      if (attempt === maxRetries) {
+        throw error; // If we're out of retries, throw the last error
+      }
+      // Wait 1 second before retrying
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+}
+
 // Routes
 app.get('/', async (req, res) => {
   try {
@@ -66,7 +87,7 @@ app.get('/', async (req, res) => {
       language
     };
 
-    const result = await queryTSE(options);
+    const result = await queryTSEWithRetry(options);
     res.json({
       inscricaoNome,
       nomeMae,
@@ -77,6 +98,7 @@ app.get('/', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message,
+      type: error instanceof CaptchaError ? 'CAPTCHA_ERROR' : 'UNKNOWN_ERROR',
       timestamp: new Date().toISOString()
     });
   }
