@@ -1,0 +1,132 @@
+openapi: "3.0.0"
+info:
+  version: "1.0.0"
+  title: "API de Título de Eleitor"
+  description: "API para recuperar informações de título de eleitor com base em um CPF."
+
+servers:
+  - url: "https://mbl-tse.app:{port}/"
+    variables:
+      port:
+        default: "443"
+        description: "Porta do servidor"
+
+paths:
+  /:
+    post:
+      summary: "Recuperar Título de Eleitor"
+      description: |
+        Forneça um CPF válido (e opcionalmente data de nascimento, nome da inscrição e nome da mãe) para recuperar o título de eleitor.
+
+        ### Fluxo de Recuperação
+
+        1. **Consulta Rápida**:
+          - Se o título estiver em nossa base, a resposta é quase instantânea.
+          
+        2. **Inferência de Dados**:
+          - Se o título não estiver em nossa base, tentamos inferir dados associados.
+          - Isso pode demorar até 10 segundos (ou 2,5 segundos com uso frequente).
+          
+        3. **Verificação do CPF**:
+          - Se a inferência não for bem-sucedida, verificamos a regularidade do CPF junto ao TSE.
+          - Esta etapa pode demorar até 30 segundos (ou 7,5 segundos com uso frequente).
+
+        4. **Solicitação de Correção**:
+          - Se houver algum dado errado, apresentamos os dados usados e pedimos correções ao usuário.
+
+        A velocidade da resposta varia com a frequência de uso: quanto mais frequente, mais rápido se torna, reduzindo os tempos significativamente.
+      operationId: "retrieveTituloEleitor"
+      parameters:
+        - name: "key"
+          in: "query"
+          required: true
+          description: "Chave de API para autenticação"
+          schema:
+            type: "string"
+      requestBody:
+        description: "Informações do usuário a serem enviadas"
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                cpf:
+                  type: "string"
+                  description: "CPF válido do usuário"
+                  example: "123.456.789-00"
+                dataNascimento:
+                  type: "string"
+                  description: "Data de nascimento do eleitor. Sobrescreva este valor caso o 'payload' retornado em 400 contenha valores inválidos."
+                  example: "1990-01-01"
+                inscricaoNome:
+                  type: "string"
+                  description: "Nome da inscrição do eleitor. Sobrescreva este valor caso o 'payload' retornado em 400 contenha valores inválidos."
+                  example: "João da Silva"
+                nomeMae:
+                  type: "string"
+                  description: "Nome da mãe do eleitor. Sobrescreva este valor caso o 'payload' retornado em 400 contenha valores inválidos."
+                  example: "Maria da Silva"
+              required:
+                - cpf
+      responses:
+        200:
+          description: "Informações do título de eleitor recuperadas com sucesso"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  dataNascimento:
+                    type: "string"
+                    description: "Data de nascimento do eleitor"
+                    example: "1990-01-01"
+                  inscricaoNome:
+                    type: "string"
+                    description: "Nome da inscrição do eleitor"
+                    example: "João da Silva"
+                  nomeMae:
+                    type: "string"
+                    description: "Nome da mãe do eleitor"
+                    example: "Maria da Silva"
+                  tituloEleitor:
+                    type: "string"
+                    description: "Número do título de eleitor"
+                    example: "1234567890"
+        400:
+          description: "CPF inválido ou dados requeridos não fornecidos"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  error:
+                    type: "string"
+                    description: "Mensagem de erro"
+                    example: "Dados insuficientes para completar a solicitação."
+                  payload:
+                    type: "object"
+                    description: "Dados inferidos pelo serviço"
+                    properties:
+                      dataNascimento:
+                        type: "string"
+                      inscricaoNome:
+                        type: "string"
+                      nomeMae:
+                        type: "string"
+        401:
+          description: "Chave de API inválida"
+        406:
+          description: "O documento não está regular com a Justiça Eleitoral"
+        500:
+          description: "Erro interno do servidor"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: "apiKey"
+      in: "query"
+      name: "key"
+security:
+  - ApiKeyAuth: []
+
