@@ -40,7 +40,7 @@ app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Retry wrapper for queryTSE
-async function queryTSEWithRetry(options, signal, maxRetries = 4) {
+async function queryTSEWithRetry(options, signal, maxRetries = 6) {
   let lastError;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -61,7 +61,7 @@ async function queryTSEWithRetry(options, signal, maxRetries = 4) {
         throw error; // If we're out of retries, throw the last error
       }
       // Wait 1 second before retrying
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
 }
@@ -97,7 +97,11 @@ app.get('/', async (req, res) => {
       const controller = new AbortController();
       const signal = controller.signal;
       
-      return queryTSEWithRetry(options, signal).then(result => {
+      return Promise.race([
+        queryTSEWithRetry(options, signal),
+        queryTSEWithRetry(options, signal)
+      ])
+        .then(result => {
         controller.abort(); // Abort the other query when one succeeds
         return result;
       }).catch(error => {

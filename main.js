@@ -162,7 +162,7 @@ app.on('login', (event, webContents, request, authInfo, callback) => {
   }
 });
 
-async function waitUntilContent(mainWindow, signal, timeout = 30000) {
+async function waitUntilContent(mainWindow, signal, timeout = 10000) {
   do {
     if (signal?.aborted) {
       throw new Error('Operation aborted');
