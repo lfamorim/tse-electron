@@ -83,7 +83,6 @@ function parseVotingLocation(html, tituloEleitor) {
   };
 }
 
-let proxyConfigured = false;
 async function queryTSE({
   inscricaoNome = 'LUCAS FERNANDO VASCONCELOS DE ARRUDA AMORIM',
   nomeMae = 'FILOMENA VASCONCELOS DE ARRUDA',
@@ -107,8 +106,7 @@ async function queryTSE({
 
   // Add proxy auth handler
   app.on('login', (event, webContents, request, authInfo, callback) => {
-    if (authInfo.isProxy && !proxyConfigured) {
-      proxyConfigured = true;
+    if (authInfo.isProxy) {
       event.preventDefault();
       callback(PROXY_USER, PROXY_PASS);
     }
@@ -157,15 +155,6 @@ async function queryTSE({
     // Wait for content to load
     return await waitUntilContent(mainWindow, signal);
   } catch (error) {
-    try {
-      // clean app cache
-      mainWindow.webContents.session.clearCache();
-      // clean webstorage and cookies, etc...
-      mainWindow.webContents.session.clearStorageData();
-    } catch (cleanupError) {
-      console.error('Error during cleanup:', cleanupError);
-    }
-    
     throw error;
   } finally {
     mainWindow.destroy();
