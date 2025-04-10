@@ -40,7 +40,7 @@ app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Retry wrapper for queryTSE
-async function queryTSEWithRetry(options, maxRetries = 5) {
+async function queryTSEWithRetry(options, maxRetries = 2) {
   let lastError;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -48,7 +48,7 @@ async function queryTSEWithRetry(options, maxRetries = 5) {
       return await queryTSE(options);
     } catch (error) {
       lastError = error;
-      if (!(error instanceof CaptchaError)) {
+      if (!(error.type == 'CaptchaError')) {
         throw error; // If it's not a CaptchaError, throw immediately
       }
       if (attempt === maxRetries) {
@@ -98,7 +98,7 @@ app.get('/', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message,
-      type: error instanceof CaptchaError ? 'CAPTCHA_ERROR' : 'UNKNOWN_ERROR',
+      type: error.type || 'UNKNOWN_ERROR',
       timestamp: new Date().toISOString()
     });
   }

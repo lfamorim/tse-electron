@@ -24,6 +24,7 @@ class CaptchaError extends Error {
   constructor(message) {
     super(message);
     this.name = 'CaptchaError';
+    this.type = 'CaptchaError';
   }
 }
 
@@ -33,7 +34,7 @@ function parseVotingLocation(html) {
 
   // Map labels to keys for standardization
   const labelMap = {
-    'Local de votação': 'localVotacao',
+    'Local de votação': 'localvotacao',
     'Endereço': 'endereco',
     'Município/UF': 'municipioUF',
     'Bairro': 'bairro',
@@ -114,7 +115,7 @@ async function queryTSE({
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
       additionalArguments: [
-        `--localVotacao=${JSON.stringify({
+        `--localvotacao=${JSON.stringify({
           inscricaoNome,
           nomeMae,
           dataNascimento
@@ -158,12 +159,12 @@ async function queryTSE({
   }
 }
 
-async function waitUntilContent(mainWindow, timeout = 10000) {
+async function waitUntilContent(mainWindow, timeout = 20000) {
   do {
     const content = await extractContent(mainWindow);
 
-    if (content.localVotacao) {
-      return parseVotingLocation(content.localVotacao);
+    if (content.localvotacao) {
+      return parseVotingLocation(content.localvotacao);
     }
 
     if (content.modalConfirmacao) {
@@ -198,7 +199,7 @@ async function extractContent(mainWindow) {
     const invalidData = Array.from(document.querySelectorAll('span')).find(p => p.textContent.includes('Autenticação realizada mas nível'));
 
     return {
-      'localVotacao': boxLocal ? boxLocal.outerHTML : null,
+      'localvotacao': boxLocal ? boxLocal.outerHTML : null,
       'modalConfirmacao': modalConfirmacao ? modalConfirmacao.outerHTML : null,
       'invalidCaptcha': invalidCaptcha ? invalidCaptcha.outerHTML : null,
       'invalidData': invalidData ? invalidData.outerHTML : null

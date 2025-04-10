@@ -51,9 +51,11 @@ function formatDate(dateStr) {
   return match ? `${match[3]}/${match[2]}/${match[1]}` : dateStr;
 }
 
+console.log(process.argv)
+
 // Get data passed from main process
-const localVotacaoArg = process.argv.find(arg => arg.startsWith('--localVotacao='));
-const data = localVotacaoArg ? JSON.parse(localVotacaoArg.replace('--localVotacao=', '')) : null;
+const localVotacaoArg = process.argv.find(arg => arg.startsWith('--localvotacao='));
+const data = localVotacaoArg ? JSON.parse(localVotacaoArg.replace('--localvotacao=', '')) : null;
 
 console.log(data);
 
