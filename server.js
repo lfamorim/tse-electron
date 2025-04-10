@@ -87,7 +87,7 @@ app.get('/', async (req, res) => {
       language
     };
 
-    const result = await queryTSEWithRetry(options);
+    const result = await Promise.race([queryTSEWithRetry(options), queryTSEWithRetry(options)]);
     res.json({
       inscricaoNome,
       nomeMae,

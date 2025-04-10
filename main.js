@@ -166,7 +166,7 @@ async function queryTSE({
   }
 }
 
-async function waitUntilContent(mainWindow, timeout = 20000) {
+async function waitUntilContent(mainWindow, timeout = 15000) {
   do {
     const content = await extractContent(mainWindow);
 
