@@ -83,6 +83,8 @@ function parseVotingLocation(html, tituloEleitor) {
   };
 }
 
+
+const { app, BrowserWindow, session } = electron;
 async function queryTSE({
   inscricaoNome = 'LUCAS FERNANDO VASCONCELOS DE ARRUDA AMORIM',
   nomeMae = 'FILOMENA VASCONCELOS DE ARRUDA',
@@ -92,24 +94,15 @@ async function queryTSE({
   language = 'pt-BR',
   signal
 } = {}) {
-  const { app, BrowserWindow, session } = electron;
 
   // Create a new session
-  const ses = session.fromPartition('persist:webviewsession');
+  const ses = session.fromPartition(`persist:${(Math.floor(Math.random() * 10) + 1).toString()}`);
 
   // Set up session-level proxy auth
   ses.setProxy({
     mode: 'fixed_servers',
     proxyRules: `http://${PROXY_HOST}:${PROXY_PORT}`,
     proxyBypassRules: '<local>'
-  });
-
-  // Add proxy auth handler
-  app.on('login', (event, webContents, request, authInfo, callback) => {
-    if (authInfo.isProxy) {
-      event.preventDefault();
-      callback(PROXY_USER, PROXY_PASS);
-    }
   });
 
   // Create the window
@@ -161,6 +154,14 @@ async function queryTSE({
   }
 }
 
+// Add proxy auth handler
+app.on('login', (event, webContents, request, authInfo, callback) => {
+  if (authInfo.isProxy) {
+    event.preventDefault();
+    callback(PROXY_USER, PROXY_PASS);
+  }
+});
+
 async function waitUntilContent(mainWindow, signal, timeout = 30000) {
   do {
     if (signal?.aborted) {
@@ -192,7 +193,7 @@ async function waitUntilContent(mainWindow, signal, timeout = 30000) {
     timeout -= 500;
   } while (timeout > 0);
 
-throw new CaptchaError('Timeout exceeded');
+  throw new CaptchaError('Timeout exceeded');
 }
 
 async function extractContent(mainWindow) {
