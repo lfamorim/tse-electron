@@ -28,7 +28,7 @@ class CaptchaError extends Error {
   }
 }
 
-function parseVotingLocation(html) {
+function parseVotingLocation(html, tituloEleitor) {
   const $ = cheerio.load(html);
   const result = {};
 
@@ -67,10 +67,17 @@ function parseVotingLocation(html) {
     }
   }
 
+  if (result.municipioUF) {
+    const [municipio, uf] = result.municipioUF.split('/');
+    result.municipio = municipio.trim();
+    result.uf = uf.trim();
+  }
+
   return {
     success: true,
     data: {
       ...result,
+      tituloEleitor,
       timestamp: new Date().toISOString()
     }
   };
@@ -130,7 +137,7 @@ async function queryTSE({
   });
 
   // Prevent app from closing when all windows are closed
-  app.on('window-all-closed', () => {});
+  app.on('window-all-closed', () => { });
 
   try {
     // Set user agent and language
@@ -150,7 +157,7 @@ async function queryTSE({
     mainWindow.webContents.openDevTools();
 
     // Load the URL first
-    await mainWindow.webContents.loadURL('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar');
+    await mainWindow.webContents.loadURL('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/consultar-numero-titulo-eleitor');
 
     // Wait for content to load
     return await waitUntilContent(mainWindow);
@@ -163,8 +170,8 @@ async function waitUntilContent(mainWindow, timeout = 20000) {
   do {
     const content = await extractContent(mainWindow);
 
-    if (content.localvotacao) {
-      return parseVotingLocation(content.localvotacao);
+    if (content.localvotacao && content.tituloEleitor) {
+      return parseVotingLocation(content.localvotacao, content.tituloEleitor);
     }
 
     if (content.modalConfirmacao) {
@@ -199,6 +206,12 @@ async function extractContent(mainWindow) {
     const invalidData = Array.from(document.querySelectorAll('span')).find(p => p.textContent.includes('Autenticação realizada mas nível'));
 
     return {
+      'tituloEleitor': Array.from(document.querySelectorAll('p'))
+        .find(x => x.textContent.includes('Título'))
+        ?.getElementsByTagName('b')
+        ?.item(0)
+        ?.textContent
+        ?.replace(/\.$/, ''),
       'localvotacao': boxLocal ? boxLocal.outerHTML : null,
       'modalConfirmacao': modalConfirmacao ? modalConfirmacao.outerHTML : null,
       'invalidCaptcha': invalidCaptcha ? invalidCaptcha.outerHTML : null,
