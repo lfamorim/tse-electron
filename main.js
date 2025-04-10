@@ -155,13 +155,24 @@ async function queryTSE({
     await mainWindow.webContents.loadURL('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/consultar-numero-titulo-eleitor');
 
     // Wait for content to load
-    return await waitUntilContent(mainWindow, 15000, signal);
+    return await waitUntilContent(mainWindow, signal);
+  } catch (error) {
+    try {
+      // clean app cache
+      mainWindow.webContents.session.clearCache();
+      // clean webstorage and cookies, etc...
+      mainWindow.webContents.session.clearStorageData();
+    } catch (cleanupError) {
+      console.error('Error during cleanup:', cleanupError);
+    }
+    
+    throw error;
   } finally {
     mainWindow.destroy();
   }
 }
 
-async function waitUntilContent(mainWindow, timeout = 15000, signal) {
+async function waitUntilContent(mainWindow, signal, timeout = 30000) {
   do {
     if (signal?.aborted) {
       throw new Error('Operation aborted');
@@ -192,7 +203,7 @@ async function waitUntilContent(mainWindow, timeout = 15000, signal) {
     timeout -= 500;
   } while (timeout > 0);
 
-  throw new CaptchaError('Timeout exceeded');
+throw new CaptchaError('Timeout exceeded');
 }
 
 async function extractContent(mainWindow) {

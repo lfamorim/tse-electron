@@ -1,5 +1,5 @@
 // Form filling functions
-function waitForElement(selector, timeout = 5000) {
+function waitForElement(selector, timeout = 20000) {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
     
