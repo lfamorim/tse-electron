@@ -7,7 +7,7 @@ const yaml = require('yaml');
 const { queryTSE, CaptchaError } = require('./main');
 
 // Common user agents for rotation
-const userAgents = [
+const userAgents = [ 
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0',
@@ -40,7 +40,7 @@ app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Retry wrapper for queryTSE
-async function queryTSEWithRetry(options, signal, maxRetries = 2) {
+async function queryTSEWithRetry(options, signal, maxRetries = 4) {
   let lastError;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -97,10 +97,7 @@ app.get('/', async (req, res) => {
       const controller = new AbortController();
       const signal = controller.signal;
       
-      return Promise.race([
-        queryTSEWithRetry(options, signal),
-        queryTSEWithRetry(options, signal)
-      ]).then(result => {
+      return queryTSEWithRetry(options, signal).then(result => {
         controller.abort(); // Abort the other query when one succeeds
         return result;
       }).catch(error => {
