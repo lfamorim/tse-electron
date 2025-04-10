@@ -40,14 +40,20 @@ app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Retry wrapper for queryTSE
-async function queryTSEWithRetry(options, maxRetries = 2) {
+async function queryTSEWithRetry(options, signal, maxRetries = 2) {
   let lastError;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
+      if (signal?.aborted) {
+        throw new Error('Operation aborted');
+      }
       console.log(`Attempt ${attempt} of ${maxRetries}`);
-      return await queryTSE(options);
+      return await queryTSE({ ...options, signal });
     } catch (error) {
       lastError = error;
+      if (signal?.aborted || error.message === 'Operation aborted') {
+        throw error; // If aborted, stop retrying
+      }
       if (!(error.type == 'CaptchaError')) {
         throw error; // If it's not a CaptchaError, throw immediately
       }
@@ -87,7 +93,21 @@ app.get('/', async (req, res) => {
       language
     };
 
-    const result = await Promise.race([queryTSEWithRetry(options), queryTSEWithRetry(options)]);
+    const result = await (() => {
+      const controller = new AbortController();
+      const signal = controller.signal;
+      
+      return Promise.race([
+        queryTSEWithRetry(options, signal),
+        queryTSEWithRetry(options, signal)
+      ]).then(result => {
+        controller.abort(); // Abort the other query when one succeeds
+        return result;
+      }).catch(error => {
+        controller.abort(); // Also abort on error
+        throw error;
+      });
+    })();
     res.json({
       inscricaoNome,
       nomeMae,

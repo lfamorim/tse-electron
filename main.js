@@ -83,13 +83,15 @@ function parseVotingLocation(html, tituloEleitor) {
   };
 }
 
+let proxyConfigured = false;
 async function queryTSE({
   inscricaoNome = 'LUCAS FERNANDO VASCONCELOS DE ARRUDA AMORIM',
   nomeMae = 'FILOMENA VASCONCELOS DE ARRUDA',
   dataNascimento = '08/06/1990',
   userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   resolution = { width: 1920, height: 1080 },
-  language = 'pt-BR'
+  language = 'pt-BR',
+  signal
 } = {}) {
   const { app, BrowserWindow, session } = electron;
 
@@ -105,7 +107,8 @@ async function queryTSE({
 
   // Add proxy auth handler
   app.on('login', (event, webContents, request, authInfo, callback) => {
-    if (authInfo.isProxy) {
+    if (authInfo.isProxy && !proxyConfigured) {
+      proxyConfigured = true;
       event.preventDefault();
       callback(PROXY_USER, PROXY_PASS);
     }
@@ -145,14 +148,6 @@ async function queryTSE({
     mainWindow.webContents.session.setSpellCheckerLanguages([language]);
     mainWindow.webContents.session.setPreloads([path.join(__dirname, 'preload.js')]);
 
-    // Set headers
-    mainWindow.webContents.session.webRequest.onBeforeSendHeaders((details, callback) => {
-      details.requestHeaders['Accept-Language'] = language;
-      details.requestHeaders['Cache-Control'] = 'max-stale=31536000';
-      details.requestHeaders['Pragma'] = 'cache';
-      callback({ requestHeaders: details.requestHeaders });
-    });
-
     // Open the DevTools automatically
     mainWindow.webContents.openDevTools();
 
@@ -160,14 +155,17 @@ async function queryTSE({
     await mainWindow.webContents.loadURL('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/consultar-numero-titulo-eleitor');
 
     // Wait for content to load
-    return await waitUntilContent(mainWindow);
+    return await waitUntilContent(mainWindow, 15000, signal);
   } finally {
     mainWindow.destroy();
   }
 }
 
-async function waitUntilContent(mainWindow, timeout = 15000) {
+async function waitUntilContent(mainWindow, timeout = 15000, signal) {
   do {
+    if (signal?.aborted) {
+      throw new Error('Operation aborted');
+    }
     const content = await extractContent(mainWindow);
 
     if (content.localvotacao && content.tituloEleitor) {
