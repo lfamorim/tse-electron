@@ -65,6 +65,12 @@ Promise.resolve()
   .then(() => fillInput('input[placeholder="Nome da mãe"]', data.nomeMae))
   .then(() => fillInput('#dataNascimento', formatDate(data.dataNascimento)))
   .then(() => {
+    const selectElement = document.querySelector('[formControlName="tipoFiliacao"]');
+    selectElement.value = 'UMA_MAE';
+    const event = new Event('change');
+selectElement.dispatchEvent(event);
+  })
+  .then(() => {
     const entrarBtn = Array.from(document.querySelectorAll('button'))
       .find(btn => btn.textContent.includes('Entrar'));
 
