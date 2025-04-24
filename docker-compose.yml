@@ -17,3 +17,5 @@ services:
     environment:
       - NGROK_AUTHTOKEN=2X48Q9vJcZxqp8D5fBtd2_4qtvVUjof8kiMqpNGHFqi
     command: http host.docker.internal:3000 --domain=mbl.ngrok.app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
