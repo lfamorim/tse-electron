@@ -109,7 +109,7 @@ async function queryTSE({
   let mainWindow = new BrowserWindow({
     width: resolution.width,
     height: resolution.height,
-    show: false,
+    show: true,
     webPreferences: {
       session: ses,
       nodeIntegration: false,
